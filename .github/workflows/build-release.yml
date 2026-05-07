@@ -79,9 +79,11 @@ jobs:
 
       - name: Publish release
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG_NAME: ${{ github.ref_name }}
+          REPOSITORY: ${{ github.repository }}
         run: |
           gh release create "$TAG_NAME" release-assets/*/*.zip \
+            --repo "$REPOSITORY" \
             --title "S26 APV to iPhone Converter $TAG_NAME" \
             --notes "Windows와 macOS용 빌드 파일입니다. FFmpeg는 별도로 설치되어 있거나 앱에서 직접 선택해야 합니다."
