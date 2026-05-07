@@ -1,0 +1,87 @@
+name: Build Desktop Apps
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Windows
+            os: windows-latest
+            artifact_name: S26_APV_to_iPhone_Converter_Windows
+            package_path: dist/S26_APV_to_iPhone_Converter_Windows.zip
+          - name: macOS
+            os: macos-latest
+            artifact_name: S26_APV_to_iPhone_Converter_macOS
+            package_path: dist/S26_APV_to_iPhone_Converter_macOS.zip
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install build dependencies
+        run: python -m pip install --upgrade pip pyinstaller
+
+      - name: Check Python syntax
+        run: python -m py_compile s26_apv_iphone_converter.py
+
+      - name: Build Windows executable
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          python -m PyInstaller --noconfirm --clean --onefile --windowed --name "S26 APV to iPhone Converter" s26_apv_iphone_converter.py
+          Compress-Archive -Path "dist/S26 APV to iPhone Converter.exe" -DestinationPath "${{ matrix.package_path }}" -Force
+
+      - name: Build macOS app
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          python -m PyInstaller --noconfirm --clean --windowed --name "S26 APV to iPhone Converter" s26_apv_iphone_converter.py
+          ditto -c -k --sequesterRsrc --keepParent "dist/S26 APV to iPhone Converter.app" "${{ matrix.package_path }}"
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: ${{ matrix.package_path }}
+          if-no-files-found: error
+
+  release:
+    name: Publish GitHub Release
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@v7
+        with:
+          path: release-assets
+
+      - name: Publish release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG_NAME: ${{ github.ref_name }}
+        run: |
+          gh release create "$TAG_NAME" release-assets/*/*.zip \
+            --title "S26 APV to iPhone Converter $TAG_NAME" \
+            --notes "Windows와 macOS용 빌드 파일입니다. FFmpeg는 별도로 설치되어 있거나 앱에서 직접 선택해야 합니다."

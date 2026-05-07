@@ -1,0 +1,11 @@
+.DS_Store
+__pycache__/
+*.py[cod]
+
+.venv/
+.pyinstaller-cache/
+build/
+dist/
+*.spec
+
+conversion_log_*.txt
