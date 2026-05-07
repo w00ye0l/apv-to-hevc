@@ -92,6 +92,48 @@ def executable_name(base: str) -> str:
     return f"{base}.exe" if is_windows() else base
 
 
+def bundled_search_roots() -> List[Path]:
+    roots: List[Path] = []
+
+    meipass = getattr(sys, "_MEIPASS", None)
+    if meipass:
+        roots.append(Path(meipass))
+
+    if getattr(sys, "frozen", False):
+        executable_dir = Path(sys.executable).resolve().parent
+        roots.extend(
+            [
+                executable_dir,
+                executable_dir / "_internal",
+                executable_dir.parent / "Frameworks",
+                executable_dir.parent / "Resources",
+            ]
+        )
+
+    app_dir = Path(__file__).resolve().parent
+    roots.extend(
+        [
+            app_dir,
+            app_dir / "vendor" / "ffmpeg" / "bin",
+            app_dir / "vendor" / "ffmpeg" / "windows" / "bin",
+            app_dir / "vendor" / "ffmpeg" / "macos" / "bin",
+        ]
+    )
+
+    unique_roots: List[Path] = []
+    seen = set()
+    for root in roots:
+        try:
+            key = root.resolve()
+        except OSError:
+            key = root
+        if key in seen:
+            continue
+        seen.add(key)
+        unique_roots.append(root)
+    return unique_roots
+
+
 def find_executable(base: str, near: Optional[Path] = None) -> Optional[Path]:
     name = executable_name(base)
 
@@ -99,6 +141,11 @@ def find_executable(base: str, near: Optional[Path] = None) -> Optional[Path]:
         candidate = near.parent / name
         if candidate.exists():
             return candidate
+
+    for root in bundled_search_roots():
+        for candidate in (root / name, root / "bin" / name, root / "ffmpeg" / name):
+            if candidate.exists():
+                return candidate
 
     found = shutil.which(name) or shutil.which(base)
     if found:

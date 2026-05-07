@@ -6,6 +6,7 @@ __pycache__/
 .pyinstaller-cache/
 build/
 dist/
+vendor/ffmpeg/
 *.spec
 
 conversion_log_*.txt

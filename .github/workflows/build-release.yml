@@ -23,7 +23,7 @@ jobs:
             artifact_name: S26_APV_to_iPhone_Converter_Windows
             package_path: dist/S26_APV_to_iPhone_Converter_Windows.zip
           - name: macOS
-            os: macos-latest
+            os: macos-13
             artifact_name: S26_APV_to_iPhone_Converter_macOS
             package_path: dist/S26_APV_to_iPhone_Converter_macOS.zip
 
@@ -43,19 +43,60 @@ jobs:
       - name: Check Python syntax
         run: python -m py_compile s26_apv_iphone_converter.py
 
+      - name: Download FFmpeg for Windows bundle
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path "vendor/ffmpeg/windows/bin"
+          Invoke-WebRequest -Uri "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip" -OutFile "ffmpeg-windows.zip"
+          Expand-Archive -Path "ffmpeg-windows.zip" -DestinationPath "ffmpeg-windows" -Force
+          $ffmpeg = Get-ChildItem -Path "ffmpeg-windows" -Recurse -Filter "ffmpeg.exe" | Select-Object -First 1
+          $ffprobe = Get-ChildItem -Path "ffmpeg-windows" -Recurse -Filter "ffprobe.exe" | Select-Object -First 1
+          Copy-Item $ffmpeg.FullName "vendor/ffmpeg/windows/bin/ffmpeg.exe"
+          Copy-Item $ffprobe.FullName "vendor/ffmpeg/windows/bin/ffprobe.exe"
+          vendor/ffmpeg/windows/bin/ffmpeg.exe -version
+
+      - name: Download FFmpeg for macOS bundle
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          mkdir -p vendor/ffmpeg/macos/bin
+          curl -L "https://evermeet.cx/ffmpeg/getrelease/zip" -o ffmpeg-macos.zip
+          curl -L "https://evermeet.cx/ffmpeg/getrelease/ffprobe/zip" -o ffprobe-macos.zip
+          unzip -q ffmpeg-macos.zip -d ffmpeg-macos
+          unzip -q ffprobe-macos.zip -d ffprobe-macos
+          cp "$(find ffmpeg-macos -type f -name ffmpeg | head -n 1)" vendor/ffmpeg/macos/bin/ffmpeg
+          cp "$(find ffprobe-macos -type f -name ffprobe | head -n 1)" vendor/ffmpeg/macos/bin/ffprobe
+          chmod +x vendor/ffmpeg/macos/bin/ffmpeg vendor/ffmpeg/macos/bin/ffprobe
+          vendor/ffmpeg/macos/bin/ffmpeg -version
+
       - name: Build Windows executable
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          python -m PyInstaller --noconfirm --clean --onefile --windowed --name "S26 APV to iPhone Converter" s26_apv_iphone_converter.py
-          Compress-Archive -Path "dist/S26 APV to iPhone Converter.exe" -DestinationPath "${{ matrix.package_path }}" -Force
+          python -m PyInstaller --noconfirm --clean --onefile --windowed --name "S26 APV to iPhone Converter" `
+            --add-binary "vendor/ffmpeg/windows/bin/ffmpeg.exe;bin" `
+            --add-binary "vendor/ffmpeg/windows/bin/ffprobe.exe;bin" `
+            s26_apv_iphone_converter.py
+          New-Item -ItemType Directory -Force -Path "release/S26 APV to iPhone Converter Windows"
+          Copy-Item "dist/S26 APV to iPhone Converter.exe" "release/S26 APV to iPhone Converter Windows/"
+          Copy-Item "README.md" "release/S26 APV to iPhone Converter Windows/"
+          Copy-Item "THIRD_PARTY_NOTICES.md" "release/S26 APV to iPhone Converter Windows/"
+          Compress-Archive -Path "release/S26 APV to iPhone Converter Windows" -DestinationPath "${{ matrix.package_path }}" -Force
 
       - name: Build macOS app
         if: runner.os == 'macOS'
         shell: bash
         run: |
-          python -m PyInstaller --noconfirm --clean --windowed --name "S26 APV to iPhone Converter" s26_apv_iphone_converter.py
-          ditto -c -k --sequesterRsrc --keepParent "dist/S26 APV to iPhone Converter.app" "${{ matrix.package_path }}"
+          python -m PyInstaller --noconfirm --clean --windowed --name "S26 APV to iPhone Converter" \
+            --add-binary "vendor/ffmpeg/macos/bin/ffmpeg:bin" \
+            --add-binary "vendor/ffmpeg/macos/bin/ffprobe:bin" \
+            s26_apv_iphone_converter.py
+          mkdir -p "release/S26 APV to iPhone Converter macOS"
+          cp -R "dist/S26 APV to iPhone Converter.app" "release/S26 APV to iPhone Converter macOS/"
+          cp "README.md" "release/S26 APV to iPhone Converter macOS/"
+          cp "THIRD_PARTY_NOTICES.md" "release/S26 APV to iPhone Converter macOS/"
+          ditto -c -k --sequesterRsrc --keepParent "release/S26 APV to iPhone Converter macOS" "${{ matrix.package_path }}"
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v7
@@ -86,4 +127,4 @@ jobs:
           gh release create "$TAG_NAME" release-assets/*/*.zip \
             --repo "$REPOSITORY" \
             --title "S26 APV to iPhone Converter $TAG_NAME" \
-            --notes "Windows와 macOS용 빌드 파일입니다. FFmpeg는 별도로 설치되어 있거나 앱에서 직접 선택해야 합니다."
+            --notes "Windows와 macOS용 빌드 파일입니다. FFmpeg와 FFprobe를 앱에 함께 포함했습니다. 자세한 고지는 THIRD_PARTY_NOTICES.md를 확인하세요."

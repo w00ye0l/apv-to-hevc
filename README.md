@@ -6,9 +6,11 @@ Samsung S26 APV/apv1 영상 파일을 iPhone, QuickTime, iCloud, KakaoTalk에서
 
 - Windows 10 이상
 - macOS 12 이상 권장
-- Python 3.9 이상
-- FFmpeg 필요
-- APV/apv1 입력 변환은 FFmpeg 8.0 이상 빌드 권장
+- Apple Silicon Mac에서는 Rosetta가 필요할 수 있음
+- GitHub Release 실행 파일 사용 시 Python 설치 불필요
+- 소스 코드로 직접 실행할 때는 Python 3.9 이상 필요
+- GitHub Release 실행 파일에는 FFmpeg/FFprobe 포함
+- 소스 코드로 직접 실행할 때는 FFmpeg 필요
 
 ## 실행
 
@@ -23,6 +25,12 @@ python3 s26_apv_iphone_converter.py
 ```
 
 ## FFmpeg 설치
+
+GitHub Release에서 받은 Windows/macOS zip에는 FFmpeg와 FFprobe가 함께 들어갑니다. 일반 사용자는 따로 설치하지 않아도 됩니다.
+
+macOS 배포 빌드는 Intel 호환 앱으로 생성됩니다. Apple Silicon Mac에서 실행되지 않으면 Rosetta 설치 안내에 따라 설치한 뒤 다시 열면 됩니다.
+
+소스 코드로 직접 실행하거나, 다른 FFmpeg 빌드를 직접 쓰고 싶을 때만 아래 내용을 참고하세요.
 
 ### Windows
 
@@ -93,7 +101,7 @@ chmod +x build_macos_app.sh
 
 결과물은 `dist/S26 APV to iPhone Converter.app`에 생성됩니다.
 
-패키징된 앱도 FFmpeg 실행 파일이 필요합니다. 사용자의 PATH에 있거나 GUI에서 직접 선택할 수 있어야 합니다.
+GitHub Actions 배포 빌드는 FFmpeg와 FFprobe를 앱에 함께 포함합니다. 로컬 빌드에서도 `vendor/ffmpeg/windows/bin` 또는 `vendor/ffmpeg/macos/bin`에 바이너리를 두면 자동으로 포함됩니다.
 
 ## GitHub Actions 자동 빌드
 
@@ -102,6 +110,7 @@ chmod +x build_macos_app.sh
 - Pull request: Windows/macOS 빌드가 되는지 확인하고 artifact를 올립니다.
 - 수동 실행: GitHub Actions 화면에서 `Build Desktop Apps`를 선택해 실행할 수 있습니다.
 - 태그 배포: `v1.0.0` 같은 태그를 push하면 GitHub Release가 생성되고 Windows/macOS zip 파일이 업로드됩니다.
+- Release zip에는 FFmpeg와 FFprobe가 포함되어 일반 고객이 별도 설치 없이 실행할 수 있습니다.
 
 예:
 
@@ -118,3 +127,7 @@ https://github.com/w00ye0l/apv-to-hevc/releases/latest/download/S26_APV_to_iPhon
 ```
 
 `site/download.html`에 다운로드 페이지 예시가 들어 있습니다. 사이트에 맞게 복사해서 붙이면 됩니다.
+
+## 라이선스 고지
+
+Release 빌드는 FFmpeg와 FFprobe를 함께 배포합니다. 자세한 내용은 `THIRD_PARTY_NOTICES.md`를 확인하세요.
