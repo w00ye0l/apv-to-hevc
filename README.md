@@ -113,8 +113,8 @@ git push origin v1.0.0
 고객용 사이트에는 다음 형식의 링크를 버튼으로 연결하면 됩니다.
 
 ```text
-https://github.com/OWNER/REPO/releases/latest/download/S26_APV_to_iPhone_Converter_Windows.zip
-https://github.com/OWNER/REPO/releases/latest/download/S26_APV_to_iPhone_Converter_macOS.zip
+https://github.com/w00ye0l/apv-to-hevc/releases/latest/download/S26_APV_to_iPhone_Converter_Windows.zip
+https://github.com/w00ye0l/apv-to-hevc/releases/latest/download/S26_APV_to_iPhone_Converter_macOS.zip
 ```
 
-`site/download.html`에 다운로드 페이지 예시가 들어 있습니다. `OWNER/REPO`를 실제 저장소 주소로 바꿔서 사이트에 붙이면 됩니다.
+`site/download.html`에 다운로드 페이지 예시가 들어 있습니다. 사이트에 맞게 복사해서 붙이면 됩니다.
